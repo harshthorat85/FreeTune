@@ -1,5 +1,9 @@
 # FreeTune
 
+[![Watch the FreeTune demo](https://i.ytimg.com/vi/Dk8d39bM9XQ/hqdefault.jpg)](https://youtu.be/Dk8d39bM9XQ)
+
+**Website:** https://freetunepitcher.netlify.app
+
 A free, open-source real-time pitch correction plugin (VST3) for vocals and other monophonic sources, built with JUCE.
 
 ![FreeTune plugin window](docs/screenshot.png)
