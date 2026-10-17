@@ -47,6 +47,29 @@ class LedToggle : public juce::Button
 public:
     explicit LedToggle (const juce::String& name);
     void paintButton (juce::Graphics&, bool isHighlighted, bool isDown) override;
+
+    // Right-click opens the host's menu (e.g. FL "Create automation clip")
+    std::function<void (const juce::MouseEvent&)> onHostMenu;
+    void mouseDown (const juce::MouseEvent&) override;
+    void mouseDrag (const juce::MouseEvent&) override;
+    void mouseUp   (const juce::MouseEvent&) override;
+
+private:
+    bool menuClick = false;
+};
+
+//==============================================================================
+// Rotary slider whose right-click opens the host's parameter menu
+class HostMenuSlider : public juce::Slider
+{
+public:
+    std::function<void (const juce::MouseEvent&)> onHostMenu;
+    void mouseDown (const juce::MouseEvent&) override;
+    void mouseDrag (const juce::MouseEvent&) override;
+    void mouseUp   (const juce::MouseEvent&) override;
+
+private:
+    bool menuClick = false;
 };
 
 //==============================================================================
@@ -102,8 +125,8 @@ private:
 
     struct Knob
     {
-        juce::Slider slider;
-        juce::Label  value;
+        HostMenuSlider slider;
+        juce::Label    value;
         std::unique_ptr<SliderAtt> attachment;
         std::function<juce::String (double)> format;
     };
@@ -111,6 +134,7 @@ private:
     void setupKnob (Knob&, const juce::String& paramId, const juce::String& title,
                     bool big, bool bipolar, std::function<juce::String (double)> format);
     void updateValueLabels();
+    void showHostMenu (const juce::String& paramId, const juce::MouseEvent&);
 
     // Notes / scales
     bool noteOn (int pitchClass) const;

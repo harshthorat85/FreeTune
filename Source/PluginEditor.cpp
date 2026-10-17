@@ -1,6 +1,6 @@
 /*
   ==============================================================================
-    FreeTune v3.3 - Editor
+    FreeTune v3.4 - Editor
   ==============================================================================
 */
 #include "PluginProcessor.h"
@@ -172,6 +172,38 @@ juce::Font FreeTuneLookAndFeel::getPopupMenuFont()                { return ftui:
 
 //==============================================================================
 // LED toggle
+//==============================================================================
+void LedToggle::mouseDown (const juce::MouseEvent& e)
+{
+    menuClick = e.mods.isPopupMenu() && onHostMenu != nullptr;
+    if (menuClick) { onHostMenu (e); return; }
+    juce::Button::mouseDown (e);
+}
+
+void LedToggle::mouseDrag (const juce::MouseEvent& e) { if (! menuClick) juce::Button::mouseDrag (e); }
+
+void LedToggle::mouseUp (const juce::MouseEvent& e)
+{
+    if (menuClick) { menuClick = false; return; }
+    juce::Button::mouseUp (e);
+}
+
+//==============================================================================
+void HostMenuSlider::mouseDown (const juce::MouseEvent& e)
+{
+    menuClick = e.mods.isPopupMenu() && onHostMenu != nullptr;
+    if (menuClick) { onHostMenu (e); return; }
+    juce::Slider::mouseDown (e);
+}
+
+void HostMenuSlider::mouseDrag (const juce::MouseEvent& e) { if (! menuClick) juce::Slider::mouseDrag (e); }
+
+void HostMenuSlider::mouseUp (const juce::MouseEvent& e)
+{
+    if (menuClick) { menuClick = false; return; }
+    juce::Slider::mouseUp (e);
+}
+
 //==============================================================================
 LedToggle::LedToggle (const juce::String& name) : juce::Button (name)
 {
@@ -526,6 +558,8 @@ FreeTuneAudioProcessorEditor::FreeTuneAudioProcessorEditor (FreeTuneAudioProcess
     addAndMakeVisible (formantBtn);
     classicAtt = std::make_unique<ButtonAtt> (audioProcessor.apvts, "classic", classicBtn);
     formantAtt = std::make_unique<ButtonAtt> (audioProcessor.apvts, "fcorr",   formantBtn);
+    classicBtn.onHostMenu = [this] (const juce::MouseEvent& e) { showHostMenu ("classic", e); };
+    formantBtn.onHostMenu = [this] (const juce::MouseEvent& e) { showHostMenu ("fcorr",   e); };
 
     addAndMakeVisible (meter);
 
@@ -590,6 +624,7 @@ void FreeTuneAudioProcessorEditor::setupKnob (Knob& k, const juce::String& param
     addAndMakeVisible (s);
 
     k.attachment = std::make_unique<SliderAtt> (audioProcessor.apvts, paramId, s);
+    s.onHostMenu = [this, paramId] (const juce::MouseEvent& e) { showHostMenu (paramId, e); };
     if (auto* param = audioProcessor.apvts.getParameter (paramId))
         s.setDoubleClickReturnValue (true, param->convertFrom0to1 (param->getDefaultValue()));
 
@@ -599,6 +634,34 @@ void FreeTuneAudioProcessorEditor::setupKnob (Knob& k, const juce::String& param
     k.value.setColour (juce::Label::textColourId, ftui::ink);
     k.value.setInterceptsMouseClicks (false, false);
     addAndMakeVisible (k.value);
+}
+
+// Right-click on a knob or toggle: show the DAW's own menu for that parameter
+// (FL Studio: "Create automation clip", "Link to controller", etc.).
+// If the host doesn't provide one, fall back to a small menu of our own.
+void FreeTuneAudioProcessorEditor::showHostMenu (const juce::String& paramId, const juce::MouseEvent& e)
+{
+    auto* param = audioProcessor.apvts.getParameter (paramId);
+    if (param == nullptr)
+        return;
+
+    if (auto* host = getHostContext())
+    {
+        if (auto menu = host->getContextMenuForParameter (param))
+        {
+            menu->showNativeMenu (e.getEventRelativeTo (this).getPosition());
+            return;
+        }
+    }
+
+    juce::PopupMenu fallback;
+    fallback.addItem ("Reset to default", [param]
+    {
+        param->beginChangeGesture();
+        param->setValueNotifyingHost (param->getDefaultValue());
+        param->endChangeGesture();
+    });
+    fallback.showMenuAsync (juce::PopupMenu::Options().withMousePosition());
 }
 
 void FreeTuneAudioProcessorEditor::updateValueLabels()
@@ -732,7 +795,7 @@ void FreeTuneAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawText ("FreeTune", 24, 12, 130, 40, juce::Justification::centredLeft, false);
     g.setColour (ftui::dim);
     g.setFont (ftui::font (13.0f));
-    g.drawText ("v3.3", 158, 17, 80, 16, juce::Justification::centredLeft, false);
+    g.drawText ("v3.4", 158, 17, 80, 16, juce::Justification::centredLeft, false);
     g.setFont (ftui::font (11.0f));
     g.drawText (juce::String ("built ") + __DATE__, 158, 33, 84, 14, juce::Justification::centredLeft, false);
 
